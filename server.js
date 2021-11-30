@@ -23,9 +23,10 @@ app.get("/app/", (req, res, next) => {
 
 // Define other CRUD API endpoints using express.js and better-sqlite3
 // CREATE a new user (HTTP method POST) at endpoint /app/new/
-app.post("/app/new/user", (req, res) => {	
-	const stmt = db.prepare("INSERT INTO userinfo (user, pass) VALUES (newtest, md5(supersecurepassword))").all();
-	res.status(201).json(stmt);
+app.post("/app/new/", (req, res) => {	
+	const stmt = db.prepare("INSERT INTO userinfo (user, pass) VALUES (?, ?)");
+	const result = stmt.run(req.body.user, md5(req.body.pass));
+	res.status(201).json({"message": result.changes + " record created: ID " + req.params.id + " (201)" });
 });
 
 // READ a list of all users (HTTP method GET) at endpoint /app/users/
@@ -36,20 +37,22 @@ app.get("/app/users", (req, res) => {
 
 // READ a single user (HTTP method GET) at endpoint /app/user/:id
 app.get("/app/user/:id", (req, res) => {
-	const stmt = db.prepare("SELECT * FROM userinfo WHERE id = 2").all();
+	const stmt = db.prepare("SELECT * FROM userinfo WHERE id = 2").get(req.params.id);
 	res.status(200).json(stmt);
 });
 
 // UPDATE a single user (HTTP method PATCH) at endpoint /app/update/user/:id
 app.patch("/app/update/user/:id", (req, res) => {
-	const stmt = db.prepare("UPDATE userinfo SET user = COALESCE(oldtest,user), pass = COALESCE(adifferentpassword,pass) WHERE id = 3").all();
-	res.status(200).json(stmt);
+	const stmt = db.prepare("UPDATE userinfo SET user = COALESCE(?,user), pass = COALESCE(?,pass) WHERE id = ?");
+	const result = stmt.run(req.body.user, md5(req.body.pass), req.params.id);
+	res.status(200).json({"message":  result.changes + " record updated: ID " + req.params.id + "(200)"});
 });
 
 // DELETE a single user (HTTP method DELETE) at endpoint /app/delete/user/:id
 app.delete("/app/delete/user/:id", (req, res) => {
-	const stmt = db.prepare("DELETE FROM userinfo WHERE id = 2").all();
-	res.status(200).json(stmt);
+	const stmt = db.prepare("DELETE FROM userinfo WHERE id = ?");
+	const result = stmt.run(req.params.id);
+	res.status(200).json({"message": result.changes + " record deleted: ID " + req.params.id + "(200)"});
 });
 
 // Default response for any other request
